@@ -1,0 +1,252 @@
+/*
+ * 德州扑克牌桌的像素风皮肤。只在像素版时放进页面，叠在原始的 poker.css / styles.css 上面；
+ * 切回原始版本时整份移除，原文件不改。配色、边框、字体和宝石商人 / 掼蛋的像素版一致。
+ * 原样式的选择器多是单个类，这里统一加 .game-shell 前缀压过它们。
+ * 图片（牌桌、筹码、庄家按钮、牌背）由掼蛋仓库的 art/cards.py 生成到 src/assets/pixel。
+ * 字号只用 12 的整数倍才清晰；边框用多层硬 box-shadow（四边黑边、角上留空）。
+ */
+
+@font-face {
+  font-family: "Fusion Pixel";
+  src: url("./assets/pixel/fusion-pixel-12px-zh_hans.woff2") format("woff2");
+  font-display: swap;
+}
+
+.game-shell {
+  --px: 2px;
+  --bg: #0e0c13;
+  --panel: #1c1826;
+  --panel-2: #262033;
+  --edge: #050408;
+  --rim: #4a3f63;
+  --shade: #0b0a10;
+  --text: #f1ece0;
+  --muted: #9a93ad;
+  --gold: #f0c050;
+  --gold-2: #b3821c;
+  --ok: #62c97a;
+  --bad: #f25c5c;
+  color: var(--text);
+  background: repeating-conic-gradient(#13101a 0 25%, var(--bg) 0 50%) 0 0 / 4px 4px;
+  font-family: "Fusion Pixel", -apple-system, "PingFang SC", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
+}
+.game-shell :is(button, input, select) { font-family: inherit; font-size: 12px; letter-spacing: 0; }
+.game-shell * { scrollbar-color: var(--rim) var(--bg); scrollbar-width: thin; }
+.game-shell :focus-visible { outline: var(--px) solid var(--gold); outline-offset: calc(var(--px) * 2); }
+
+/* ---------- 像素边框 ---------- */
+.game-shell :is(
+  .pk-chip-label, .pk-blinds, .turn-indicator, .game-rules-toggle, .game-rules-panel, .pk-dissolve, .quiet-button, .primary-button,
+  .pk-plate, .pk-chips, .pk-tag, .pk-action, .pk-hand-name, .pk-bet, .pk-pot, .pk-result, .pk-me, .pk-action-button,
+  .pk-raise-presets button, .pk-raise-input, .pk-panel, .pk-votes span, .room-chat, .room-chat-list, .room-chat-message,
+  .room-chat-input, .room-chat-send, .voice-bar, .voice-button, .voice-person, .gm-panel, .pk-timer
+) {
+  border: 0;
+  border-radius: 0;
+  box-shadow:
+    0 calc(var(--px) * -1) 0 0 var(--edge),
+    0 var(--px) 0 0 var(--edge),
+    calc(var(--px) * -1) 0 0 0 var(--edge),
+    var(--px) 0 0 0 var(--edge),
+    inset var(--px) var(--px) 0 0 var(--rim),
+    inset calc(var(--px) * -1) calc(var(--px) * -1) 0 0 var(--shade);
+}
+
+/* ---------- 按钮：靛蓝（普通）、金色（主要）、红色（危险）；按下时下沉一格 ---------- */
+.game-shell :is(.quiet-button, .game-rules-toggle, .voice-button, .pk-action-button, .pk-raise-presets button) {
+  --rim: #6b5c8f;
+  --shade: #141119;
+  min-height: 0;
+  padding: 6px 12px;
+  color: var(--text);
+  background: #332b44;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+}
+.game-shell :is(.primary-button, .room-chat-send, .voice-button.join, .pk-action-button.raise) {
+  --rim: #fff2b8;
+  --shade: #7a5410;
+  min-height: 0;
+  padding: 8px 16px;
+  color: #2a1c06;
+  background: var(--gold);
+  font-size: 12px;
+  font-weight: 400;
+}
+.game-shell :is(.pk-dissolve, .pk-action-button.fold) { --rim: #f25c5c; --shade: #3d0a12; color: #ffd8d0; background: #6e1020; }
+.game-shell .pk-dissolve { padding: 4px 10px; cursor: pointer; font-size: 12px; }
+.game-shell :is(.primary-button, .quiet-button, .game-rules-toggle, .room-chat-send, .voice-button, .pk-action-button, .pk-raise-presets button, .pk-dissolve):hover:not(:disabled) {
+  border-color: transparent;
+  transform: none;
+  filter: brightness(1.15);
+}
+.game-shell :is(.primary-button, .quiet-button, .game-rules-toggle, .room-chat-send, .voice-button, .pk-action-button, .pk-raise-presets button, .pk-dissolve):active:not(:disabled) {
+  transform: translateY(var(--px));
+  --rim: var(--shade);
+}
+.game-shell :is(.primary-button, .quiet-button, .room-chat-send, .voice-button, .pk-action-button):disabled {
+  cursor: default;
+  opacity: 1;
+  filter: grayscale(0.6) brightness(0.7);
+}
+.game-shell .style-toggle { padding: 6px 10px; }
+
+/* ---------- 顶栏 ---------- */
+.game-shell .pk-topbar { gap: 10px; border-bottom: var(--px) solid #332b44; }
+.game-shell .brand { color: var(--text); gap: 8px; }
+.game-shell .brand-mark { border: 0; border-radius: 0; transform: none; }
+.game-shell .brand-mark-poker { width: 24px; height: 24px; color: #fff; background: #1f5c40; font-size: 12px; box-shadow: 0 0 0 var(--px) var(--edge), inset var(--px) var(--px) 0 0 #3f8a62; }
+.game-shell .brand-name { font-family: inherit; font-size: 12px; font-weight: 400; letter-spacing: 0.1em; }
+.game-shell .connection-status { gap: 6px; color: var(--muted); font-size: 12px; }
+.game-shell .connection-dot { width: 6px; height: 6px; border-radius: 0; background: var(--gold-2); box-shadow: none; }
+.game-shell .connection-status.online .connection-dot { background: var(--ok); box-shadow: none; }
+.game-shell .pk-chip-label { --rim: #332b44; padding: 2px 8px; color: var(--muted); background: var(--bg); font-size: 12px; font-weight: 400; letter-spacing: 0.15em; }
+.game-shell .pk-blinds { --rim: #3f8a62; --shade: #0e2a1c; padding: 2px 10px; color: var(--text); background: #1f5c40; font-size: 12px; }
+.game-shell .pk-blinds b { color: var(--gold); font-size: 12px; font-weight: 400; }
+.game-shell .pk-blinds small { color: #cfe8d4; font-size: 12px; }
+.game-shell .pk-hand-number { color: var(--muted); font-size: 12px; }
+.game-shell .turn-indicator { --rim: #332b44; gap: 8px; padding: 2px 10px; color: var(--muted); background: var(--bg); font-size: 12px; }
+.game-shell .turn-dot { width: 6px; height: 6px; border-radius: 0; background: var(--muted); box-shadow: none; }
+.game-shell .turn-indicator.my-turn { --rim: var(--gold-2); color: var(--gold); background: #2a1c06; font-weight: 400; }
+.game-shell .turn-indicator.my-turn .turn-dot { background: var(--gold); box-shadow: none; animation: pk-blink 1s steps(2, jump-none) infinite; }
+@keyframes pk-blink { 50% { opacity: 0; } }
+.game-shell .pk-feedback { color: var(--ok); font-size: 12px; }
+.game-shell .pk-error { color: var(--bad); }
+.game-shell .game-rules-toggle > span { color: var(--gold); }
+.game-shell .game-rules-toggle > i { color: var(--muted); font-size: 12px; }
+.game-shell .pk-topbar .game-rules-toggle { padding: 6px 12px; font-size: 12px; }
+.game-shell .pk-topbar .game-rules-panel { --rim: var(--gold-2); padding: 18px 20px; background: var(--panel); }
+.game-shell .game-rules-block h3 { color: var(--gold); font-family: inherit; font-size: 12px; font-weight: 400; }
+.game-shell .game-rules-block :is(p, li) { color: var(--text); font-size: 12px; line-height: 1.7; }
+
+/* ---------- 牌桌：像素画的椭圆桌（木框 + 金线 + 格纹绿毡），按比例整张铺满 ---------- */
+.game-shell .pk-felt {
+  border: 0;
+  border-radius: 0;
+  background: url("./assets/pixel/table.png") 0 0 / 100% 100% no-repeat;
+  box-shadow: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 calc(var(--px) * 3) 0 rgba(0, 0, 0, 0.45));
+}
+.game-shell .pk-pot { --rim: #3f8a62; --shade: #06180f; display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; color: #cfe8d4; background: #0e2a1c; font-size: 12px; }
+.game-shell .pk-pot::before { width: 26px; height: 26px; background: url("./assets/pixel/chip-green.png") 0 0 / 100% 100%; image-rendering: pixelated; content: ""; }
+.game-shell .pk-pot b { color: var(--gold); font-size: 24px; font-weight: 400; line-height: 1; }
+.game-shell .pk-result { --rim: #3f8a62; --shade: #06180f; padding: 8px 14px; color: var(--text); background: rgba(8, 30, 20, 0.92); font-size: 12px; }
+.game-shell .pk-result span { color: #cfe8d4; font-size: 12px; }
+.game-shell .pk-result b { color: var(--gold); font-weight: 400; }
+.game-shell .pk-result .pk-out-note { color: #ffb8a8; font-size: 12px; }
+
+/* 座位 */
+.game-shell .pk-plate { --rim: #3f8a62; --shade: #06180f; gap: 6px; padding: 4px 8px; color: var(--text); background: #0e2a1c; font-size: 12px; }
+.game-shell .pk-plate strong { font-weight: 400; }
+.game-shell .pk-chips { --rim: #fff; --shade: #9a93ad; display: inline-flex; align-items: center; gap: 4px; min-width: 0; padding: 0 6px 0 2px; color: #141218; background: #f1ece0; font-size: 12px; font-weight: 400; }
+.game-shell .pk-chips::before { width: 13px; height: 13px; background: url("./assets/pixel/chip-black.png") 0 0 / 100% 100%; image-rendering: pixelated; content: ""; }
+.game-shell .pk-dealer {
+  top: -12px;
+  left: -12px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 0;
+  color: transparent;
+  background: url("./assets/pixel/dealer.png") 0 0 / 100% 100%;
+  image-rendering: pixelated;
+}
+.game-shell .pk-tag { --rim: #f25c5c; --shade: #3d0a12; padding: 0 4px; color: #ffd8d0; background: #6e1020; font-size: 12px; }
+.game-shell .pk-tag.allin { --rim: #fff2b8; --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+.game-shell .pk-action { --rim: #3f8a62; --shade: #06180f; padding: 0 6px; color: #cfe8d4; background: #0e2a1c; font-size: 12px; }
+.game-shell .pk-action.fold { color: #6f8a78; }
+.game-shell :is(.pk-action.raise, .pk-action.bet, .pk-action.allIn) { color: var(--gold); }
+.game-shell .pk-hand-name { --rim: #fff2b8; --shade: #7a5410; padding: 0 6px; color: #2a1c06; background: var(--gold); font-size: 12px; font-weight: 400; }
+.game-shell .pk-bet { --rim: #3f8a62; --shade: #06180f; gap: 4px; padding: 0 6px 0 2px; color: var(--text); background: #0e2a1c; font-size: 12px; font-weight: 400; }
+.game-shell .pk-bet::before { width: 26px; height: 26px; border: 0; border-radius: 0; background: url("./assets/pixel/chip-red.png") 0 0 / 100% 100%; image-rendering: pixelated; }
+.game-shell .pk-seat.active .pk-plate { --rim: var(--gold); --shade: #7a5410; background: #2a1c06; animation: pk-glow 1.2s steps(2, jump-none) infinite; }
+@keyframes pk-glow { 50% { filter: brightness(1.25); } }
+.game-shell .pk-seat.winner .pk-plate { --rim: var(--ok); --shade: #0b2614; background: #12452a; }
+.game-shell .pk-seat:is(.folded, .out) .pk-plate { opacity: 0.5; }
+.game-shell .pk-seat.offline .pk-plate { --rim: #6f8a78; }
+.game-shell .pk-timer { --rim: #3f8a62; --shade: #06180f; width: 90px; height: 8px; background: #0e2a1c; }
+.game-shell .pk-timer i { background: var(--gold); transition: width 250ms steps(4, jump-none); }
+
+/* ---------- 像素牌：牌面图片已带描边和角标；1 倍 41×57，大牌 1.5 倍 ---------- */
+.game-shell .pk-card { border-radius: 0; box-shadow: none; filter: drop-shadow(0 var(--px) 0 rgba(0, 0, 0, 0.45)); }
+.game-shell .pk-card img { image-rendering: pixelated; }
+.game-shell .pk-card.dim { filter: grayscale(0.85) brightness(0.6); }
+.game-shell :is(.pk-card-small, .pk-card-medium) { width: 41px; height: 57px; }
+.game-shell .pk-card-large { width: 61.5px; height: 85.5px; }
+.game-shell .pk-card-back { border: 0; background: url("./assets/pixel/back.png") 0 0 / 100% 100% no-repeat; image-rendering: pixelated; }
+.game-shell .pk-card.pk-slot { border: 0; background: rgba(6, 24, 15, 0.45); box-shadow: inset 0 0 0 var(--px) rgba(207, 232, 212, 0.25); filter: none; }
+
+/* ---------- 下方：自己的牌和行动 ---------- */
+.game-shell .pk-me { --rim: #4a3f63; padding: 10px 14px; background: var(--panel); }
+.game-shell .pk-me.active { --rim: var(--gold); --shade: #7a5410; background: #241d16; }
+.game-shell .pk-me-empty { color: var(--muted); font-size: 12px; }
+.game-shell .pk-me-info { color: var(--muted); font-size: 12px; }
+.game-shell .pk-me-info b { color: var(--gold); font-size: 12px; font-weight: 400; }
+.game-shell .pk-countdown { color: var(--bad); font-size: 12px; font-weight: 400; }
+.game-shell .pk-waiting { color: var(--muted); font-size: 12px; }
+.game-shell .pk-action-button { min-height: 36px; }
+.game-shell .pk-raise-presets button { padding: 2px 8px; }
+.game-shell .pk-raise input[type="range"] { accent-color: var(--gold); }
+.game-shell .pk-raise-input { --rim: var(--shade); --shade: #332b44; height: 32px; color: var(--text); background: var(--bg); }
+
+/* ---------- 右侧：房间对话、语音 ---------- */
+.game-shell .room-chat { --rim: #4a3f63; padding: 12px 14px 14px; color: var(--text); background: var(--panel); }
+.game-shell .room-chat-heading h2 { color: var(--gold); font-family: inherit; font-size: 12px; font-weight: 400; }
+.game-shell .room-chat-heading span { color: var(--muted); font-size: 12px; }
+.game-shell .room-chat-list { --rim: var(--shade); --shade: #332b44; padding: 10px; background: var(--bg); }
+.game-shell .room-chat-message { --rim: #4a3f63; padding: 4px 8px; background: var(--panel-2); }
+.game-shell .room-chat-message.mine { --rim: var(--gold-2); --shade: #2a1c06; background: #3a2c10; }
+.game-shell .room-chat-meta strong { color: var(--gold); font-size: 12px; font-weight: 400; }
+.game-shell .room-chat-meta time { color: var(--muted); font-size: 12px; }
+.game-shell .room-chat-message p { color: var(--text); font-size: 12px; }
+.game-shell .room-chat-empty { color: var(--muted); font-size: 12px; }
+.game-shell .room-chat-input { --rim: var(--shade); --shade: #332b44; height: 32px; color: var(--text); background: var(--bg); font-size: 12px; }
+.game-shell .room-chat-input::placeholder { color: #5f5876; }
+.game-shell .room-chat-input:focus { outline: var(--px) solid var(--gold); outline-offset: 0; }
+.game-shell .room-chat-send { padding: 0 14px; }
+.game-shell .room-chat-error { color: var(--bad); font-size: 12px; }
+.game-shell .voice-bar { --rim: var(--shade); --shade: #332b44; padding: 8px; background: var(--bg); }
+.game-shell .voice-button { padding: 2px 8px; }
+.game-shell .voice-button.live { --rim: #62c97a; --shade: #0b2614; color: #b7f0c0; background: #12452a; }
+.game-shell .voice-button.leave { color: #ffd8d0; }
+.game-shell :is(.voice-count, .voice-person small) { color: var(--muted); font-size: 12px; }
+.game-shell .voice-person { --rim: #4a3f63; padding: 0 6px; color: var(--text); background: var(--panel-2); font-size: 12px; }
+.game-shell .voice-person.speaking { --rim: var(--ok); }
+.game-shell .voice-error { color: var(--bad); font-size: 12px; }
+
+/* ---------- 比赛结束、确认弹窗 ---------- */
+.game-shell :is(.pk-modal-backdrop, .gm-modal-backdrop) {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  backdrop-filter: none;
+  background: repeating-conic-gradient(rgba(5, 4, 8, 0.85) 0 25%, rgba(5, 4, 8, 0.6) 0 50%) 0 0 / 4px 4px;
+}
+.game-shell .pk-panel { --rim: var(--gold); padding: 22px 24px; background: var(--panel); }
+.game-shell .pk-panel h2 { color: var(--gold); font-family: inherit; font-size: 24px; font-weight: 400; text-shadow: var(--px) var(--px) 0 var(--edge); }
+.game-shell .pk-ranking li { border-bottom: var(--px) solid var(--panel-2); color: var(--text); font-size: 12px; }
+.game-shell .pk-ranking span { color: var(--gold); font-size: 12px; font-weight: 400; }
+.game-shell .pk-panel-note { color: var(--muted); font-size: 12px; }
+.game-shell .pk-votes span { --rim: #4a3f63; padding: 2px 8px; color: var(--muted); background: var(--panel-2); font-size: 12px; }
+.game-shell .pk-votes span.yes { --rim: var(--ok); --shade: #0b2614; color: #b7f0c0; background: #12452a; }
+.game-shell .pk-panel-actions .primary-button { min-height: 36px; }
+.game-shell .gm-panel { --rim: var(--gold); width: min(380px, 100%); padding: 22px 24px; color: var(--text); background: var(--panel); }
+.game-shell .gm-panel h2 { margin: 0 0 10px; color: var(--gold); font-family: inherit; font-size: 24px; font-weight: 400; line-height: 1.25; }
+.game-shell .gm-panel p { margin: 0; color: var(--text); font-size: 12px; line-height: 1.7; }
+.game-shell .gm-panel-actions { display: flex; justify-content: flex-end; gap: 14px; margin-top: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-shell :is(.turn-indicator.my-turn .turn-dot, .pk-seat.active .pk-plate) { animation: none; }
+}
+@media (max-width: 1000px), (max-height: 620px) {
+  .game-shell .pk-card-large { width: 41px; height: 57px; }
+}

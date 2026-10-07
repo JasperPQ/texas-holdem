@@ -1,0 +1,4 @@
+/* 画面切换按钮在原始版本里的样子（原 styles.css 没有这类按钮，样式照原版的 quiet-button 缩小一号）。
+   像素版时 app-pixel.css 里的规则更具体，会覆盖这里。 */
+.style-toggle { min-height: 0; border: 1px solid #dedbd1; border-radius: 7px; padding: 6px 11px; background: transparent; color: #7f847c; cursor: pointer; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.style-toggle:hover { border-color: #b7b2a5; color: var(--ink); }
