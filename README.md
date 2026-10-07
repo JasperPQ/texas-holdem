@@ -38,3 +38,7 @@ npm run typecheck
 - 原始样式 `styles.css`、`poker.css` 一字未改；像素皮肤 `app-pixel.css`（首页和等待大厅，和宝石商人同一套）和 `poker-pixel.css`（牌桌）用 `?inline` 导入，只在像素版时放进页面。
 - 牌在两种画面下标记不同（`pixel.ts` 的 `PixelContext`）：原版是 `public/cards/` 的 SVG 加放大角标；像素版是 `public/cards-pixel/` 的 PNG。
 - 像素牌面、牌桌、筹码、庄家按钮由掼蛋仓库的 `art/cards.py` 生成（两个游戏共用一副牌），见那边的 README。
+
+## 服务器上的启动方式
+
+pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --import tsx` 进程跑服务端（不经过 `npm start`），每个游戏省下一百多 MB 内存。端口和密钥存在 pm2 里，不进仓库；`deploy.sh` 照旧 `pm2 restart`。改了 `ecosystem.config.cjs` 之后，要在服务器上带着原来的环境变量 `pm2 delete` 再 `pm2 start ecosystem.config.cjs` 一次。
