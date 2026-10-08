@@ -13,6 +13,7 @@ import {
   type PokerAction,
 } from "@poker/game";
 import GameRules from "./GameRules.js";
+import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import "./poker.css";
 
@@ -118,7 +119,10 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
         <div className="pk-seat-cards">
           {revealed
             ? revealed.cards.map((card) => <PlayingCard card={card} size="small" key={card.id} />)
-            : player.folded ? null : [0, 1].map((index) => <PlayingCard size="small" faceDown key={index} />)}
+            : player.folded ? null
+            // 观战开了「看手牌」时别人的底牌也发过来了。
+            : player.holeCards.length > 0 ? player.holeCards.map((card) => <PlayingCard card={card} size="small" key={card.id} />)
+            : [0, 1].map((index) => <PlayingCard size="small" faceDown key={index} />)}
         </div>
       )}
       <div className="pk-plate">
@@ -139,10 +143,12 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
 }
 
 /** 比赛结束后的继续投票。 */
-function RematchPanel({ room, match, onRematch }: {
+function RematchPanel({ room, match, spectating, onRematch, onLeave }: {
   room: LobbyRoomSnapshot;
   match: MatchView;
+  spectating: boolean;
   onRematch: (accept: boolean) => void;
+  onLeave: () => void;
 }) {
   const rematch = room.rematch;
   const remaining = useCountdown(rematch?.remainingMs, String(Boolean(rematch)));
@@ -166,10 +172,16 @@ function RematchPanel({ room, match, onRematch }: {
                 <span className={accepted.has(member.id) ? "yes" : ""} key={member.id}>{member.name}{accepted.has(member.id) ? " ✓" : ""}</span>
               ))}
             </div>
-            <div className="pk-panel-actions">
-              <button type="button" className="quiet-button" onClick={() => onRematch(false)}>退出房间</button>
-              <button type="button" className="primary-button" disabled={myVote} onClick={() => onRematch(true)}>{myVote ? "等待其他玩家" : "再来一局"}</button>
-            </div>
+            {spectating ? (
+              <div className="pk-panel-actions">
+                <button type="button" className="quiet-button" onClick={onLeave}>离开观战</button>
+              </div>
+            ) : (
+              <div className="pk-panel-actions">
+                <button type="button" className="quiet-button" onClick={() => onRematch(false)}>退出房间</button>
+                <button type="button" className="primary-button" disabled={myVote} onClick={() => onRematch(true)}>{myVote ? "等待其他玩家" : "再来一局"}</button>
+              </div>
+            )}
           </>
         )}
       </section>
@@ -189,6 +201,9 @@ function PokerTable({
   onAction,
   onRematch,
   onDissolve,
+  watchId,
+  onWatch,
+  onLeave,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
@@ -202,11 +217,18 @@ function PokerTable({
   onAction: (action: PokerAction) => void;
   onRematch: (accept: boolean) => void;
   onDissolve: () => void;
+  /** 观战时从这位玩家的座位看。 */
+  watchId: string;
+  onWatch: (playerId: string) => void;
+  /** 观战的人离开。 */
+  onLeave: () => void;
 }) {
   useEffect(() => preloadCardImages(), []);
   const match = room.match!;
   const hand = match.hand;
-  const mySeat = match.mySeat ?? 0;
+  // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（下方是他的牌），但什么都不能点。
+  const spectating = !room.members.some((member) => member.id === socket.id);
+  const mySeat = spectating ? Math.max(0, match.players.findIndex((player) => player.id === watchId)) : match.mySeat ?? 0;
   const me = match.players[mySeat]!;
   const count = match.players.length;
   const layout = LAYOUTS[count] ?? LAYOUTS[6]!;
@@ -223,7 +245,7 @@ function PokerTable({
   const myBest = me.holeCards.length === 2 && hand.board.length >= 3 ? describeHand(bestHand([...me.holeCards, ...hand.board])) : "";
   const nameOf = (id: string) => match.players.find((player) => player.id === id)?.name ?? "玩家";
   const activeName = hand.turn !== null ? match.players[hand.turn]?.name : "";
-  const myTurn = match.phase === "playing" && hand.turn === mySeat;
+  const myTurn = !spectating && match.phase === "playing" && hand.turn === mySeat;
 
   const turnText = match.phase === "finished" ? "比赛结束"
     : match.phase === "handOver" ? "这一手结束"
@@ -243,7 +265,7 @@ function PokerTable({
     <div className="pk-screen">
       <header className="pk-topbar">
         {brand}
-        <span className="pk-chip-label" title="房间码">{room.code}</span>
+        {room.code && <span className="pk-chip-label" title="房间码">{room.code}</span>}
         <span className="pk-blinds" title="当前盲注">
           盲注 <b>{hand.smallBlind}/{hand.bigBlind}</b>
           {nextLevelInMs !== null && <small>{nextLevelInMs > 0 ? ` · 约 ${Math.ceil(nextLevelInMs / 60_000)} 分钟后翻倍` : " · 下一手翻倍"}</small>}
@@ -252,6 +274,7 @@ function PokerTable({
         <span className={myTurn ? "turn-indicator my-turn" : "turn-indicator"}><span className="turn-dot" />{turnText}</span>
         <span className="pk-feedback" role="status">{error ? <span className="pk-error">{error}</span> : notice}</span>
         <GameRules />
+        <GameRoomMenu room={room} />
         {isHost && <button type="button" className="pk-dissolve" onClick={onDissolve}>解散房间</button>}
         {themeToggle}
         {connection}
@@ -295,25 +318,29 @@ function PokerTable({
               position={layout[(seat - mySeat + count) % count]!}
               member={room.members.find((member) => member.id === player.id)}
               remainingMs={remainingMs}
-              isMe={seat === mySeat}
+              isMe={!spectating && seat === mySeat}
             />
           ))}
         </div>
       </section>
 
-      <section className={`pk-me${myTurn ? " active" : ""}`} aria-label="你的手牌和行动">
+      <section className={`pk-me${myTurn ? " active" : ""}`} aria-label={spectating ? `${me.name}的手牌` : "你的手牌和行动"}>
         <div className="pk-me-cards">
           {me.holeCards.length > 0
             ? me.holeCards.map((card) => <PlayingCard card={card} size="large" dim={me.folded} key={card.id} />)
-            : <span className="pk-me-empty">{me.place !== null ? `你已出局（第 ${me.place} 名），可以继续观战` : "等待下一手"}</span>}
+            : spectating && me.hasCards && !me.folded
+              ? [0, 1].map((index) => <PlayingCard size="large" faceDown key={index} />)
+              : <span className="pk-me-empty">{me.place !== null ? `${spectating ? me.name : "你"}已出局（第 ${me.place} 名）${spectating ? "" : "，可以继续观战"}` : "等待下一手"}</span>}
         </div>
         <div className="pk-me-info">
           <span>筹码 <b>{me.chips}</b></span>
           {myBest && !me.folded && <span>当前牌型 <b>{myBest}</b></span>}
-          {me.folded && match.phase === "playing" && <span>你已弃牌</span>}
+          {me.folded && match.phase === "playing" && <span>{spectating ? `${me.name}已弃牌` : "你已弃牌"}</span>}
         </div>
         <div className="pk-actions">
-          {myTurn && legal ? (
+          {spectating ? (
+            <SpectateBar room={room} watchId={me.id} onWatch={onWatch} onLeave={onLeave} />
+          ) : myTurn && legal ? (
             <>
               {remainingMs !== null && match.settings.actionSeconds > 0 && <span className="pk-countdown">{Math.ceil(remainingMs / 1000)} 秒</span>}
               <button type="button" className="pk-action-button fold" disabled={busy} onClick={() => onAction({ type: "fold" })}>弃牌</button>
@@ -372,7 +399,7 @@ function PokerTable({
 
       <div className="pk-chat">{chat}</div>
 
-      {match.phase === "finished" && <RematchPanel room={room} match={match} onRematch={onRematch} />}
+      {match.phase === "finished" && <RematchPanel room={room} match={match} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
     </div>
   );
 }
