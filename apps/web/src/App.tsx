@@ -1,17 +1,12 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { LobbyRoomSnapshot, PokerAction, PublicRoomSummary, Settings } from "@poker/game";
-import { useBoardStyle } from "./boardStyle.js";
 import { useConfirm } from "./confirm.js";
 import PokerTable, { cardImage } from "./PokerTable.js";
 import GameRules from "./GameRules.js";
-import { PixelContext } from "./pixel.js";
-// 像素风皮肤：只在像素版时放进页面，叠在原始的 styles.css / poker.css 上；切回原始版本时整份移除。
-// app-pixel.css 管首页和等待大厅（和宝石商人同一套），poker-pixel.css 管牌桌。
-import appPixelCss from "./app-pixel.css?inline";
-import pokerPixelCss from "./poker-pixel.css?inline";
 import OnlineRooms from "./OnlineRooms.js";
 import RoomChat from "./RoomChat.js";
 import { socket } from "./socket.js";
+import { ThemeToggle, useTheme } from "./theme.js";
 import { useVoice } from "./voice.js";
 
 type EntryMode = "create" | "join";
@@ -36,21 +31,11 @@ function App() {
   const [notice, setNotice] = useState("");
   const [lobbyRooms, setLobbyRooms] = useState<PublicRoomSummary[]>([]);
   const voice = useVoice(room);
-  // 画面风格（默认像素版）：首页、等待大厅、牌桌共用，顶栏按钮随时切换；和宝石商人、游戏中心共用同一个选择。
-  const [boardStyle, toggleBoardStyle] = useBoardStyle();
-  const pixel = boardStyle === "pixel";
-  const pixelSkin = pixel && <style>{appPixelCss + pokerPixelCss}</style>;
-  const styleToggle = <StyleToggle pixel={pixel} onToggle={toggleBoardStyle} />;
-  // 解散房间等确认：像素版用像素弹窗，原始版本照旧用浏览器确认框。
-  const [confirm, confirmDialog] = useConfirm(pixel);
-  // 手机浏览器地址栏的颜色跟着画面风格走：像素版深色，原始版本保持 index.html 里的米色。
-  useEffect(() => {
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (!meta || !pixel) return;
-    const original = meta.getAttribute("content") ?? "";
-    meta.setAttribute("content", "#0e0c13");
-    return () => meta.setAttribute("content", original);
-  }, [pixel]);
+  // 白天 / 夜间画面：首页、等待大厅、牌桌共用，顶栏按钮随时切换；和游戏中心、其他游戏共用同一个选择。
+  const [theme, toggleTheme] = useTheme();
+  const themeToggle = <ThemeToggle theme={theme} onToggle={toggleTheme} />;
+  // 解散房间等确认用像素弹窗。
+  const [confirm, confirmDialog] = useConfirm();
 
   // 在房间里时服务端不推送在线牌桌列表；回到首页时主动拉一次最新的。
   useEffect(() => {
@@ -193,7 +178,6 @@ function App() {
       title: "解散房间？",
       detail: "所有玩家都会被移出，当前对局也会结束。",
       confirmLabel: "解散",
-      classicText: "确定解散房间吗？所有玩家都会被移出，当前对局也会结束。",
     });
     if (ok) roomCommand((ack) => socket.emit("room:dissolve", ack));
   }
@@ -210,36 +194,32 @@ function App() {
 
   if (room?.status === "playing" && room.match) {
     return (
-      <PixelContext.Provider value={pixel}>
-        <main className="game-shell">
-          {pixelSkin}
-          <PokerTable
-            room={room}
-            busy={busy}
-            error={error}
-            notice={notice}
-            brand={<Brand />}
-            connection={<ConnectionStatus connected={connected} />}
-            styleToggle={styleToggle}
-            chat={<RoomChat room={room} voice={voice} />}
-            onAction={submitGameAction}
-            onRematch={voteRematch}
-            onDissolve={dissolveRoom}
-          />
-          {confirmDialog}
-        </main>
-      </PixelContext.Provider>
+      <main className="game-shell">
+        <PokerTable
+          room={room}
+          busy={busy}
+          error={error}
+          notice={notice}
+          brand={<Brand />}
+          connection={<ConnectionStatus connected={connected} />}
+          themeToggle={themeToggle}
+          chat={<RoomChat room={room} voice={voice} />}
+          onAction={submitGameAction}
+          onRematch={voteRematch}
+          onDissolve={dissolveRoom}
+        />
+        {confirmDialog}
+      </main>
     );
   }
 
   if (room) {
     return (
       <main className="app-shell">
-        {pixelSkin}
         <header className="topbar">
           <Brand />
           <div className="topbar-right">
-            {styleToggle}
+            {themeToggle}
             <ConnectionStatus connected={connected} />
           </div>
         </header>
@@ -265,12 +245,11 @@ function App() {
 
   return (
     <main className="app-shell">
-      {pixelSkin}
       <header className="topbar">
         <Brand />
         <div className="topbar-right">
           <a className="center-link" href={CENTER_URL}>← 游戏中心</a>
-          {styleToggle}
+          {themeToggle}
           <ConnectionStatus connected={connected} />
         </div>
       </header>
@@ -283,17 +262,8 @@ function App() {
             创建一张私人牌桌，或输入房间码加入朋友的比赛。所有人同样的筹码起步，打到最后一人获胜。
           </p>
           <div className="poker-showcase" aria-hidden="true">
-            {pixel ? (
-              <>
-                <img className="pixel-mini-card" src={cardImage({ id: "", suit: "S", rank: 14 }, true)} alt="" />
-                <img className="pixel-mini-card" src={cardImage({ id: "", suit: "H", rank: 13 }, true)} alt="" />
-              </>
-            ) : (
-              <>
-                <span className="mini-card">A<i>♠</i></span>
-                <span className="mini-card red">K<i>♥</i></span>
-              </>
-            )}
+            <img className="pixel-mini-card" src={cardImage({ id: "", suit: "S", rank: 14 })} alt="" />
+            <img className="pixel-mini-card" src={cardImage({ id: "", suit: "H", rank: 13 })} alt="" />
             <span className="showcase-caption">两张底牌 · 五张公共牌</span>
           </div>
         </div>
@@ -394,20 +364,6 @@ function Brand() {
       <span className="brand-mark brand-mark-poker" aria-hidden="true">♠</span>
       <span className="brand-name">德州扑克<span> TEXAS HOLD'EM</span></span>
     </a>
-  );
-}
-
-/** 顶栏的画面切换按钮：像素版 ⇄ 原始版本，只影响自己看到的画面。 */
-function StyleToggle({ pixel, onToggle }: { pixel: boolean; onToggle: () => void }) {
-  return (
-    <button
-      type="button"
-      className="quiet-button style-toggle"
-      onClick={onToggle}
-      title={pixel ? "换回原始版本的画面（只影响你自己看到的）" : "换成像素风画面（只影响你自己看到的）"}
-    >
-      {pixel ? "切换原版" : "切换像素版"}
-    </button>
   );
 }
 

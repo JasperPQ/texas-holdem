@@ -1,6 +1,6 @@
 /*
- * 德州扑克牌桌的像素风皮肤。只在像素版时放进页面，叠在原始的 poker.css / styles.css 上面；
- * 切回原始版本时整份移除，原文件不改。配色、边框、字体和宝石商人 / 掼蛋的像素版一致。
+ * 德州扑克牌桌的像素风皮肤，叠在 poker.css / styles.css 上面（这两份是改版前的样式，只当底子用，本身不改）。
+ * 这里写的是夜间配色；白天版由 day-theme.ts 按 day-palette.ts 换色生成。配色、边框、字体和宝石商人 / 掼蛋一致。
  * 原样式的选择器多是单个类，这里统一加 .game-shell 前缀压过它们。
  * 图片（牌桌、筹码、庄家按钮、牌背）由掼蛋仓库的 art/cards.py 生成到 src/assets/pixel。
  * 字号只用 12 的整数倍才清晰；边框用多层硬 box-shadow（四边黑边、角上留空）。
@@ -94,7 +94,8 @@
   opacity: 1;
   filter: grayscale(0.6) brightness(0.7);
 }
-.game-shell .style-toggle { padding: 6px 10px; }
+.game-shell .theme-toggle { padding: 6px 10px; }
+:is(.app-shell, .game-shell) .theme-toggle { white-space: nowrap; }
 
 /* ---------- 顶栏 ---------- */
 .game-shell .pk-topbar { gap: 10px; border-bottom: var(--px) solid #332b44; }

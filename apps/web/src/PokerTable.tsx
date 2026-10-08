@@ -13,11 +13,9 @@ import {
   type PokerAction,
 } from "@poker/game";
 import GameRules from "./GameRules.js";
-import { usePixel } from "./pixel.js";
 import { socket } from "./socket.js";
 import "./poker.css";
 
-const SUIT_SYMBOLS: Record<Card["suit"], string> = { S: "♠", H: "♥", D: "♦", C: "♣" };
 const SUIT_NAMES: Record<Card["suit"], string> = { S: "黑桃", H: "红桃", D: "方块", C: "梅花" };
 
 /** 不同人数下各座位在桌边的位置（第一个总是自己，在正下方）。 */
@@ -41,48 +39,33 @@ const ACTION_NAMES: Record<ActionRecord["type"], string> = {
   allIn: "全下",
 };
 
-const CARD_IMAGE_BASE = `${import.meta.env.BASE_URL}cards/`;
-/** 像素版牌面（掼蛋仓库 art/cards.py 画的 PNG，两个游戏共用），文件名和 SVG 一一对应。 */
-const PIXEL_CARD_BASE = `${import.meta.env.BASE_URL}cards-pixel/`;
+/** 像素牌面（掼蛋仓库 art/cards.py 画的 PNG，两个游戏共用）。 */
+const CARD_IMAGE_BASE = `${import.meta.env.BASE_URL}cards-pixel/`;
 
-/** 牌面图片文件名，例如黑桃 A 为 Sa.svg、红桃 10 为 H10.svg。 */
-export function cardImage(card: Card, pixel = false): string {
+/** 牌面图片文件名，例如黑桃 A 为 Sa.png、红桃 10 为 H10.png。 */
+export function cardImage(card: Card): string {
   const rank = ({ 11: "j", 12: "q", 13: "k", 14: "a" } as Record<number, string>)[card.rank] ?? String(card.rank);
-  return pixel ? `${PIXEL_CARD_BASE}${card.suit}${rank}.png` : `${CARD_IMAGE_BASE}${card.suit}${rank}.svg`;
+  return `${CARD_IMAGE_BASE}${card.suit}${rank}.png`;
 }
 
-/** 提前加载整副牌面（当前画面风格的那一套），避免发牌时图片一张张冒出来。 */
-export function preloadCardImages(pixel = false): void {
+/** 提前加载整副牌面，避免发牌时图片一张张冒出来。 */
+export function preloadCardImages(): void {
   for (const suit of ["S", "H", "D", "C"] as const) {
-    for (let rank = 2; rank <= 14; rank += 1) new Image().src = cardImage({ id: "", suit, rank }, pixel);
+    for (let rank = 2; rank <= 14; rank += 1) new Image().src = cardImage({ id: "", suit, rank });
   }
 }
 
-/**
- * 一张牌。原始版本是 SVG 牌面加放大的角标；像素版换成像素牌面图（角标已经画在图里，不再叠加），
- * 背面朝上的牌由样式表画像素牌背。
- */
+/** 一张牌：像素牌面图（角标已经画在图里）；背面朝上的牌由样式表画像素牌背。 */
 export function PlayingCard({ card, size = "medium", faceDown = false, dim = false }: {
   card?: Card;
   size?: "small" | "medium" | "large";
   faceDown?: boolean;
   dim?: boolean;
 }) {
-  const pixel = usePixel();
   if (!card || faceDown) return <span className={`pk-card pk-card-${size} pk-card-back`} aria-label="背面朝上的牌" />;
-  if (pixel) {
-    return (
-      <span className={`pk-card pk-card-${size}${dim ? " dim" : ""}`} role="img" aria-label={`${SUIT_NAMES[card.suit]}${rankLabel(card.rank)}`}>
-        <img src={cardImage(card, true)} alt="" draggable={false} />
-      </span>
-    );
-  }
   return (
     <span className={`pk-card pk-card-${size}${dim ? " dim" : ""}`} role="img" aria-label={`${SUIT_NAMES[card.suit]}${rankLabel(card.rank)}`}>
       <img src={cardImage(card)} alt="" draggable={false} />
-      <span className={`pk-index${card.suit === "H" || card.suit === "D" ? " red" : ""}`} aria-hidden="true">
-        <b>{rankLabel(card.rank)}</b><i>{SUIT_SYMBOLS[card.suit]}</i>
-      </span>
     </span>
   );
 }
@@ -201,7 +184,7 @@ function PokerTable({
   notice,
   brand,
   connection,
-  styleToggle,
+  themeToggle,
   chat,
   onAction,
   onRematch,
@@ -213,15 +196,14 @@ function PokerTable({
   notice: string;
   brand: ReactNode;
   connection: ReactNode;
-  /** 顶栏的画面切换按钮（像素版 ⇄ 原始版本）。 */
-  styleToggle: ReactNode;
+  /** 顶栏的白天 / 夜间切换按钮。 */
+  themeToggle: ReactNode;
   chat: ReactNode;
   onAction: (action: PokerAction) => void;
   onRematch: (accept: boolean) => void;
   onDissolve: () => void;
 }) {
-  const pixel = usePixel();
-  useEffect(() => preloadCardImages(pixel), [pixel]);
+  useEffect(() => preloadCardImages(), []);
   const match = room.match!;
   const hand = match.hand;
   const mySeat = match.mySeat ?? 0;
@@ -271,7 +253,7 @@ function PokerTable({
         <span className="pk-feedback" role="status">{error ? <span className="pk-error">{error}</span> : notice}</span>
         <GameRules />
         {isHost && <button type="button" className="pk-dissolve" onClick={onDissolve}>解散房间</button>}
-        {styleToggle}
+        {themeToggle}
         {connection}
       </header>
 

@@ -31,13 +31,14 @@ npm test
 npm run typecheck
 ```
 
-## 画面风格：像素版（默认）和原始版本
+## 画面：白天版和夜间版
 
-首页、等待大厅、牌桌默认是像素风，顶栏「切换原版 / 切换像素版」随时切换，只影响自己看到的画面，记在浏览器的 `gm-board-style` 里（和宝石商人、掼蛋、游戏中心共用同一个选择）。
+只有像素风一种画面（原始版本已删掉），配色分夜间（深色，默认）和白天（白底）两种。顶栏「切换白天版 / 切换夜间版」随时切换，只影响自己看到的画面，记在浏览器的 `gm-pixel-theme` 里；gulugagame.com 上的大厅和各个游戏同源，共用这一个选择。
 
-- 原始样式 `styles.css`、`poker.css` 一字未改；像素皮肤 `app-pixel.css`（首页和等待大厅，和宝石商人同一套）和 `poker-pixel.css`（牌桌）用 `?inline` 导入，只在像素版时放进页面。
-- 牌在两种画面下标记不同（`pixel.ts` 的 `PixelContext`）：原版是 `public/cards/` 的 SVG 加放大角标；像素版是 `public/cards-pixel/` 的 PNG。
-- 像素牌面、牌桌、筹码、庄家按钮由掼蛋仓库的 `art/cards.py` 生成（两个游戏共用一副牌），见那边的 README。
+- 夜间配色就是 `app-pixel.css`（首页和等待大厅，和宝石商人同一套）和 `poker-pixel.css`（牌桌），叠在改版前的 `styles.css`、`poker.css` 上（这两份只当底子用）本身。白天版不单独写：`apps/web/day-theme.ts`（Vite 插件）在构建时把这些样式里和颜色有关的声明照抄一份，选择器前加 `:root[data-theme="day"]`，按 `apps/web/day-palette.ts` 的调色表换成白天的颜色。改夜间样式时白天版自动跟着变，只有新出现的深色需要在调色表里补一行。
+- 机械换色不合适的地方在 `apps/web/src/theme-day.css` 里手写。
+- `index.html` 里一小段脚本在样式生效前就给 `<html>` 加上 `data-theme="day"`，打开页面不会先闪一下深色；切换逻辑和按钮在 `src/theme.tsx`。
+- 牌面是 `public/cards-pixel/` 的像素 PNG。像素牌面、牌桌、筹码、庄家按钮由掼蛋仓库的 `art/cards.py` 生成（两个游戏共用一副牌），见那边的 README。
 
 ## 服务器上的启动方式
 

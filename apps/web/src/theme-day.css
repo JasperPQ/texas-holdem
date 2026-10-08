@@ -1,0 +1,9 @@
+/*
+ * 白天版手调的部分。大部分白天样式由 day-theme.ts 从 app-pixel.css、poker-pixel.css 换色生成，
+ * 这里只放机械换色不合适的地方；选择器都以 :root[data-theme="day"] 开头。
+ */
+:root[data-theme="day"] { color-scheme: light; }
+:root[data-theme="day"] :is(.app-shell, .game-shell) * { scrollbar-color: #b8b1c6 var(--bg); }
+
+/* 绒布上（和顶栏盲注）的深绿小牌子保持夜间的浅色字 */
+:root[data-theme="day"] .game-shell :is(.pk-blinds, .pk-pot, .pk-result, .pk-plate, .pk-action, .pk-bet) { --text: #f1ece0; --muted: #9a93ad; }
