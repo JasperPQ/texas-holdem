@@ -36,6 +36,17 @@ export interface PlayerState {
 	actedAt: number | null;
 	/** 淘汰名次；null 表示还在比赛中。 */
 	place: number | null;
+	/** 这场比赛里的行动习惯（桌上人人看得见的公开信息，人机用来判断对手松紧）。 */
+	stats: PlayerStats;
+}
+
+export interface PlayerStats {
+	/** 主动行动的次数（不含盲注）。 */
+	actions: number;
+	/** 其中下注 / 加注 / 全下加注的次数。 */
+	raises: number;
+	/** 其中弃牌的次数。 */
+	folds: number;
 }
 
 export type Street = "preflop" | "flop" | "turn" | "river" | "showdown";
@@ -226,6 +237,7 @@ export function createMatch(
 			handBet: 0,
 			actedAt: null,
 			place: null,
+			stats: { actions: 0, raises: 0, folds: 0 },
 		})),
 		phase: "playing",
 		hand: undefined as unknown as HandState,
@@ -480,6 +492,12 @@ export function applyAction(previous: MatchState, playerId: string, action: Poke
 		default:
 			throw new RuleViolation("无法识别的行动。");
 	}
+	const raised = hand.currentBet > previous.hand.currentBet;
+	player.stats = {
+		actions: player.stats.actions + 1,
+		raises: player.stats.raises + (raised ? 1 : 0),
+		folds: player.stats.folds + (action.type === "fold" ? 1 : 0),
+	};
 	player.actedAt = hand.raiseCount;
 	continueBetting(state, seat);
 	return state;
