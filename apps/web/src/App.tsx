@@ -9,6 +9,10 @@ import { roomRole, RoomSettingsPanel, SeatSwitch } from "./RoomExtras.js";
 import { socket } from "./socket.js";
 import { ThemeToggle, useTheme } from "./theme.js";
 import { useVoice } from "./voice.js";
+import { TutorialInvite } from "./tutorial/Invite.js";
+import { readTutorial } from "./tutorial/storage.js";
+import { GAME_ID } from "./tutorialGame.js";
+import TutorialMode from "./TutorialMode.js";
 
 type EntryMode = "create" | "join";
 
@@ -34,6 +38,26 @@ function App() {
   // 观战时从谁的座位看（默认第一位玩家）。
   const [watchId, setWatchId] = useState("");
   const voice = useVoice(room);
+  // 新手教程：首页或等候房间点进来（地址带 ?tutorial 时直接打开，游戏中心可以直接链过来）
+  const [tutorialOpen, setTutorialOpen] = useState(() => new URLSearchParams(window.location.search).has("tutorial"));
+
+  function closeTutorial() {
+    setTutorialOpen(false);
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("tutorial")) {
+      params.delete("tutorial");
+      const query = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`);
+    }
+  }
+
+  // 在等候房间里看教程时，房主一开局就回到牌桌（不然这一步会超时、转成托管）
+  useEffect(() => {
+    if (tutorialOpen && room?.status === "playing") {
+      closeTutorial();
+      setNotice("对局开始了，教程先停在这里。");
+    }
+  }, [tutorialOpen, room?.status]);
   // 白天 / 夜间画面：首页、等待大厅、牌桌共用，顶栏按钮随时切换；和游戏中心、其他游戏共用同一个选择。
   const [theme, toggleTheme] = useTheme();
   const themeToggle = <ThemeToggle theme={theme} onToggle={toggleTheme} />;
@@ -220,6 +244,15 @@ function App() {
     }
   }
 
+  if (tutorialOpen && room?.status !== "playing") {
+    return (
+      <main className="game-shell tut-on">
+        <TutorialMode name={name} brand={<Brand />} themeToggle={themeToggle} waitingRoom={room?.code} onExit={closeTutorial} />
+        {confirmDialog}
+      </main>
+    );
+  }
+
   if (room?.status === "playing" && room.match) {
     const players = room.match.players;
     const watched = players.some((player) => player.id === watchId) ? watchId : players[0]!.id;
@@ -258,6 +291,13 @@ function App() {
           </div>
         </header>
         <GameRules />
+        <TutorialInvite
+          record={readTutorial(GAME_ID)}
+          title="等人的时候，先学一下？"
+          text="咕噜嘎带你在真牌桌上打三手牌，5 分钟。不会离开房间，房主一开局就自动回来。"
+          again="再看一遍新手教程（不会离开房间）"
+          onOpen={() => setTutorialOpen(true)}
+        />
         <RoomView
           room={room}
           busy={busy}
@@ -294,8 +334,15 @@ function App() {
           <div className="eyebrow"><span className="eyebrow-line" /> 无限注淘汰赛 · 2—6 人</div>
           <h1>Texas Hold'em</h1>
           <p className="welcome-description">
-            创建一张私人牌桌，或输入房间码加入朋友的比赛。所有人同样的筹码起步，打到最后一人获胜。
+            创建一张私人牌桌，或输入房间码加入朋友的比赛。所有人同样的筹码起步，打到最后一人获胜；人不够可以加人机。
           </p>
+          <TutorialInvite
+            record={readTutorial(GAME_ID)}
+            title="第一次玩？5 分钟学会"
+            text="咕噜嘎在真牌桌上带你打三手牌，学完和人机练一局。"
+            again="再看一遍新手教程"
+            onOpen={() => setTutorialOpen(true)}
+          />
           <div className="poker-showcase" aria-hidden="true">
             <img className="pixel-mini-card" src={cardImage({ id: "", suit: "S", rank: 14 })} alt="" />
             <img className="pixel-mini-card" src={cardImage({ id: "", suit: "H", rank: 13 })} alt="" />

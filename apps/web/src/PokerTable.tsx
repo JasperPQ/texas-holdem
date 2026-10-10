@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   bestHand,
   describeHand,
@@ -15,6 +15,9 @@ import {
 import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
+import { Coach, TipToast } from "./tutorial/Coach.js";
+import { useFirstTimeTips } from "./tutorial/tips.js";
+import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
 import "./poker.css";
 
 const SUIT_NAMES: Record<Card["suit"], string> = { S: "黑桃", H: "红桃", D: "方块", C: "梅花" };
@@ -87,6 +90,13 @@ function useCountdown(remainingMs: number | undefined, resetKey: string): number
   return deadline === null ? null : Math.max(0, deadline - now);
 }
 
+/** 每次 key 变化加 1 的计数（牌局没有版本号，用局面摘要代替）。 */
+function useStepVersion(key: string): number {
+  const ref = useRef({ key, version: 0 });
+  if (ref.current.key !== key) ref.current = { key, version: ref.current.version + 1 };
+  return ref.current.version;
+}
+
 function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
   player: PlayerView;
   seat: number;
@@ -114,7 +124,7 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={classes}>
+    <div className={classes} data-tutorial={`seat:${seat}`}>
       {!isMe && player.hasCards && !out && (
         <div className="pk-seat-cards">
           {revealed
@@ -126,7 +136,7 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
         </div>
       )}
       <div className="pk-plate">
-        {hand.dealerSeat === seat && match.phase !== "finished" && <span className="pk-dealer" title="庄位">D</span>}
+        {hand.dealerSeat === seat && match.phase !== "finished" && <span className="pk-dealer" title="庄位" data-tutorial="dealer">D</span>}
         <strong>{player.name}{isMe ? "（你）" : ""}</strong>
         <span className="pk-chips">{out ? `第 ${player.place} 名` : player.chips}</span>
         {member?.bot && <span className="pk-tag bot">人机</span>}
@@ -145,17 +155,20 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
 }
 
 /** 比赛结束后的继续投票。 */
-function RematchPanel({ room, match, spectating, onRematch, onLeave }: {
+function RematchPanel({ room, match, spectating, selfId, actions, onRematch, onLeave }: {
   room: LobbyRoomSnapshot;
   match: MatchView;
   spectating: boolean;
+  selfId: string;
+  /** 教程练习局：替代「再来一局」的按钮。 */
+  actions: ReactNode;
   onRematch: (accept: boolean) => void;
   onLeave: () => void;
 }) {
   const rematch = room.rematch;
   const remaining = useCountdown(rematch?.remainingMs, String(Boolean(rematch)));
   const accepted = new Set(rematch?.acceptedIds ?? []);
-  const myVote = accepted.has(socket.id ?? "");
+  const myVote = accepted.has(selfId);
   const ranking = [...match.players].sort((left, right) => (left.place ?? 99) - (right.place ?? 99));
   return (
     <div className="pk-modal-backdrop">
@@ -163,10 +176,11 @@ function RematchPanel({ room, match, spectating, onRematch, onLeave }: {
         <h2 id="pk-final-title">{match.players.find((player) => player.id === match.winnerId)?.name ?? "—"} 赢得比赛</h2>
         <ol className="pk-ranking">
           {ranking.map((player) => (
-            <li key={player.id}><span>第 {player.place} 名</span>{player.name}{player.id === socket.id ? "（你）" : ""}</li>
+            <li key={player.id}><span>第 {player.place} 名</span>{player.name}{player.id === selfId ? "（你）" : ""}</li>
           ))}
         </ol>
-        {rematch && (
+        {actions && <div className="pk-panel-actions">{actions}</div>}
+        {!actions && rematch && (
           <>
             <p className="pk-panel-note">再来一局？{Math.ceil((remaining ?? 0) / 1000)} 秒内未确认视为退出。</p>
             <div className="pk-votes">
@@ -207,6 +221,9 @@ function PokerTable({
   watchId,
   onWatch,
   onLeave,
+  selfMemberId,
+  mode: boardMode = "online",
+  finalActions,
 }: {
   room: LobbyRoomSnapshot;
   busy: boolean;
@@ -227,12 +244,19 @@ function PokerTable({
   onWatch: (playerId: string) => void;
   /** 观战的人离开。 */
   onLeave: () => void;
+  /** 自己在 room.members 里的 id（教程里是固定值），默认 socket.id。 */
+  selfMemberId?: string;
+  /** online：真实对局；tutorial：剧本进行中（不出提示和小贴士）；practice：练习局（随时能看提示）。 */
+  mode?: "online" | "tutorial" | "practice";
+  /** 结算框里替代「再来一局」的按钮（练习局用）。 */
+  finalActions?: ReactNode;
 }) {
   useEffect(() => preloadCardImages(), []);
   const match = room.match!;
   const hand = match.hand;
   // 观战的人没有座位：牌桌按 watchId 那位玩家的座位摆（下方是他的牌），但什么都不能点。
-  const spectating = !room.members.some((member) => member.id === socket.id);
+  const selfId = selfMemberId ?? socket.id ?? "";
+  const spectating = !room.members.some((member) => member.id === selfId);
   const mySeat = spectating ? Math.max(0, match.players.findIndex((player) => player.id === watchId)) : match.mySeat ?? 0;
   const me = match.players[mySeat]!;
   const count = match.players.length;
@@ -246,12 +270,33 @@ function PokerTable({
   }, [turnKey, legal?.minRaiseTo]);
 
   const pot = match.players.reduce((total, player) => total + player.handBet, 0);
-  const isHost = room.members.find((member) => member.id === socket.id)?.isHost ?? false;
+  const isHost = room.members.find((member) => member.id === selfId)?.isHost ?? false;
   const myBest = me.holeCards.length === 2 && hand.board.length >= 3 ? describeHand(bestHand([...me.holeCards, ...hand.board])) : "";
   const nameOf = (id: string) => match.players.find((player) => player.id === id)?.name ?? "玩家";
   const activeName = hand.turn !== null ? match.players[hand.turn]?.name : "";
   const myTurn = !spectating && match.phase === "playing" && hand.turn === mySeat;
-  const myAuto = !spectating && room.members.find((member) => member.id === socket.id)?.auto === true;
+  const myAuto = !spectating && room.members.find((member) => member.id === selfId)?.auto === true;
+
+  // 局面每变一次加 1（提示、小贴士按它判断「这一步」）。
+  const stepKey = `${match.phase}:${hand.number}:${hand.street}:${hand.turn}:${match.players.map((player) => `${player.handBet}${player.folded ? "f" : ""}`).join(",")}`;
+  const version = useStepVersion(stepKey);
+  // 「提示」：只有自己和人机时（练习局，或一个人加人机开的房间）；让人机从你的位置算一步
+  const botsOnly = room.members.every((member) => member.id === selfId || member.bot);
+  const canHint = !spectating && !myAuto && myTurn && (boardMode === "practice" || (boardMode === "online" && botsOnly));
+  const [hint, setHint] = useState<{ version: number; hint: Hint } | null>(null);
+  const shownHint = hint && hint.version === version && canHint ? hint.hint : null;
+  const toggleHint = () => setHint((current) => (current && current.version === version ? null : { version, hint: hintFor(match, selfId) }));
+  useEffect(() => {
+    if (!canHint) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      if (event.key.toLowerCase() === "h") toggleHint();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [canHint, version]);
+  const tips = useFirstTimeTips(GAME_ID, version, () => detectTips(match, selfId), TIPS, boardMode === "online" && !spectating);
 
   const turnText = match.phase === "finished" ? "比赛结束"
     : match.phase === "handOver" ? "这一手结束"
@@ -280,7 +325,7 @@ function PokerTable({
         <span className={myTurn ? "turn-indicator my-turn" : "turn-indicator"}><span className="turn-dot" />{turnText}</span>
         <span className="pk-feedback" role="status">{error ? <span className="pk-error">{error}</span> : notice}</span>
         <GameRules />
-        <GameRoomMenu room={room} />
+        {boardMode === "online" && <GameRoomMenu room={room} />}
         {isHost && <button type="button" className="pk-dissolve" onClick={onDissolve}>解散房间</button>}
         {themeToggle}
         {connection}
@@ -289,7 +334,7 @@ function PokerTable({
       <section className="pk-table-area" aria-label="牌桌">
         <div className="pk-felt">
           <div className="pk-center">
-            <div className="pk-board">
+            <div className="pk-board" data-tutorial="board">
               {[0, 1, 2, 3, 4].map((index) => (
                 hand.board[index]
                   ? <PlayingCard card={hand.board[index]} size="large" key={index} />
@@ -297,13 +342,16 @@ function PokerTable({
               ))}
             </div>
             {hand.result ? (
-              <div className="pk-result">
+              <div className="pk-result" data-tutorial="result">
                 {hand.result.pots.map((result, index) => {
                   const handName = hand.result!.revealed[result.winnerIds[0]!]?.handName;
                   const refund = !hand.result!.uncontested && result.eligibleIds.length === 1;
+                  // 没人跟、退回的那部分不算边池。
+                  const contested = hand.result!.pots.filter((pot) => pot.eligibleIds.length > 1);
+                  const potIndex = contested.indexOf(result);
                   return (
                     <p key={index}>
-                      {hand.result!.pots.length > 1 && <span>{index === 0 ? "主池" : `边池 ${index}`}</span>}
+                      {contested.length > 1 && potIndex >= 0 && <span>{potIndex === 0 ? "主池" : `边池 ${potIndex}`}</span>}
                       {result.winnerIds.map(nameOf).join("、")} {refund ? "收回" : "赢得"} <b>{result.amount}</b>
                       {hand.result!.uncontested ? "（其他人弃牌）" : !refund && handName ? `（${handName}）` : ""}
                     </p>
@@ -312,7 +360,7 @@ function PokerTable({
                 {hand.result.eliminatedIds.length > 0 && <p className="pk-out-note">{hand.result.eliminatedIds.map(nameOf).join("、")} 筹码输光，出局</p>}
               </div>
             ) : (
-              <div className="pk-pot">底池 <b>{pot}</b></div>
+              <div className="pk-pot" data-tutorial="pot">底池 <b>{pot}</b></div>
             )}
           </div>
           {match.players.map((player, seat) => (
@@ -331,7 +379,7 @@ function PokerTable({
       </section>
 
       <section className={`pk-me${myTurn ? " active" : ""}`} aria-label={spectating ? `${me.name}的手牌` : "你的手牌和行动"}>
-        <div className="pk-me-cards">
+        <div className="pk-me-cards" data-tutorial="my-cards">
           {me.holeCards.length > 0
             ? me.holeCards.map((card) => <PlayingCard card={card} size="large" dim={me.folded} key={card.id} />)
             : spectating && me.hasCards && !me.folded
@@ -340,7 +388,7 @@ function PokerTable({
         </div>
         <div className="pk-me-info">
           <span>筹码 <b>{me.chips}</b></span>
-          {myBest && !me.folded && <span>当前牌型 <b>{myBest}</b></span>}
+          {myBest && !me.folded && <span data-tutorial="my-hand">当前牌型 <b>{myBest}</b></span>}
           {me.folded && match.phase === "playing" && <span>{spectating ? `${me.name}已弃牌` : "你已弃牌"}</span>}
         </div>
         <div className="pk-actions">
@@ -354,14 +402,15 @@ function PokerTable({
           ) : myTurn && legal ? (
             <>
               {remainingMs !== null && match.settings.actionSeconds > 0 && <span className="pk-countdown">{Math.ceil(remainingMs / 1000)} 秒</span>}
-              <button type="button" className="pk-action-button fold" disabled={busy} onClick={() => onAction({ type: "fold" })}>弃牌</button>
+              {canHint && <button type="button" className={shownHint ? "pk-action-button pk-hint on" : "pk-action-button pk-hint"} data-tutorial="hint" onClick={toggleHint} title="人机会怎么打（键盘 H）">提示</button>}
+              <button type="button" className="pk-action-button fold" data-tutorial="fold" disabled={busy} onClick={() => onAction({ type: "fold" })}>弃牌</button>
               {legal.canCheck
-                ? <button type="button" className="pk-action-button" disabled={busy} onClick={() => onAction({ type: "check" })}>过牌</button>
-                : <button type="button" className="pk-action-button" disabled={busy} onClick={() => onAction({ type: "call" })}>
+                ? <button type="button" className="pk-action-button" data-tutorial="check" disabled={busy} onClick={() => onAction({ type: "check" })}>过牌</button>
+                : <button type="button" className="pk-action-button" data-tutorial="call" disabled={busy} onClick={() => onAction({ type: "call" })}>
                     {me.chips <= legal.toCall ? `全下跟注 ${me.chips}` : `跟注 ${legal.toCall}`}
                   </button>}
               {legal.canRaise && (
-                <div className="pk-raise">
+                <div className="pk-raise" data-tutorial="raise">
                   <div className="pk-raise-presets">
                     <button type="button" onClick={() => setRaiseTo(legal.minRaiseTo)}>最小</button>
                     <button type="button" onClick={() => setRaiseTo(potRaise(0.5))}>½ 底池</button>
@@ -397,7 +446,7 @@ function PokerTable({
                 </div>
               )}
               {!legal.canRaise && legal.canAllIn && me.chips > legal.toCall && (
-                <button type="button" className="pk-action-button raise" disabled={busy} onClick={() => onAction({ type: "allIn" })}>全下 {legal.maxRaiseTo}</button>
+                <button type="button" className="pk-action-button raise" data-tutorial="allin" disabled={busy} onClick={() => onAction({ type: "allIn" })}>全下 {legal.maxRaiseTo}</button>
               )}
             </>
           ) : (
@@ -410,7 +459,22 @@ function PokerTable({
 
       <div className="pk-chat">{chat}</div>
 
-      {match.phase === "finished" && <RematchPanel room={room} match={match} spectating={spectating} onRematch={onRematch} onLeave={onLeave} />}
+      {match.phase === "finished" && <RematchPanel room={room} match={match} spectating={spectating} selfId={selfId} actions={finalActions} onRematch={onRematch} onLeave={onLeave} />}
+      {shownHint && (
+        <Coach
+          bubble
+          view={{
+            key: `hint-${version}`,
+            say: shownHint.say,
+            ...(shownHint.note ? { note: shownHint.note } : {}),
+            anchor: shownHint.anchor,
+            focus: false,
+            face: "think",
+            actions: <button className="quiet-button" type="button" onClick={() => setHint(null)}>知道了</button>,
+          }}
+        />
+      )}
+      {tips.tip && <TipToast tip={tips.tip} onClose={tips.dismiss} onNever={tips.never} />}
     </div>
   );
 }

@@ -60,9 +60,9 @@ const NEXT: TutorialCommand = { type: "nextHand" };
 export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{ id: "goal", kind: "info", lesson: "目标", face: "happy", say: "德州扑克：赢走别人的筹码，最后一个还有筹码的人获胜。", note: "每人 1000 筹码起步。我带你打三手牌，你照着做就行。" },
 	// 第 1 手：你是庄位，咕噜一号小盲，咕噜二号大盲。
-	{ id: "dealer", kind: "info", lesson: "庄位和盲注", anchor: "dealer", say: "D 是庄位，每打完一手往左轮一位。", note: "庄位左边两位先强制下注：小盲 10、大盲 20，叫「盲注」，保证每手都有东西可赢。" },
+	{ id: "dealer", kind: "info", lesson: "盲注", anchor: "dealer", say: "D 是庄位，每打完一手往左轮一位。", note: "庄位左边两位先强制下注：小盲 10、大盲 20，叫「盲注」，保证每手都有东西可赢。" },
 	{ id: "blinds", kind: "info", anchor: "seat:2", say: "咕噜一号下了小盲 10，咕噜二号下了大盲 20。", note: "下注的筹码摆在每个人面前，这一轮结束后收进底池。" },
-	{ id: "hole", kind: "info", lesson: "底牌和公共牌", anchor: "my-cards", say: "这两张是你的底牌，只有你自己看得见。", note: "别人的底牌在你这里是背面朝上。" },
+	{ id: "hole", kind: "info", lesson: "底牌", anchor: "my-cards", say: "这两张是你的底牌，只有你自己看得见。", note: "别人的底牌在你这里是背面朝上。" },
 	{ id: "board", kind: "info", anchor: "board", say: "桌子中间会陆续发 5 张公共牌，大家共用。", note: "最后用 2 张底牌加 5 张公共牌里最好的 5 张，比谁的牌型大。" },
 	{ id: "call", kind: "do", lesson: "跟注", anchor: "call", expect: CALL, say: "第一轮从大盲左边的人开始说话，现在轮到你：点「跟注」。", note: "跟注：把自己的下注补到和场上最高的一样多，这里是 20。" },
 	{ id: "pre-rest", kind: "watch", moves: [CALL, CHECK], say: "咕噜一号补齐跟注；咕噜二号的大盲已经够了，可以过牌。" },
@@ -81,8 +81,8 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{ id: "river-check", kind: "watch", moves: [CHECK], say: "咕噜一号过牌。" },
 	{ id: "bet", kind: "do", lesson: "下注", anchor: "raise", expect: { type: "raise", to: 0 }, say: "没人下注时主动出钱叫「下注」：点「½ 底池」，再点「下注」。" },
 	{ id: "river-call", kind: "watch", moves: [CALL], say: "咕噜一号跟注，下注结束，摊牌！" },
-	{ id: "showdown", kind: "info", lesson: "摊牌比大小", anchor: "result", face: "happy", say: "摊牌：没弃牌的人亮出底牌，牌型大的赢走底池。", note: "你的两对 K 和 Q 赢了咕噜一号的一对 9。" },
-	{ id: "ranks", kind: "info", lesson: "牌型大小", anchor: "hand-ranks", face: "think", say: "牌型从大到小看右边这张表：同花顺最大，高牌最小。", note: "同牌型再比点数；五张一样大就平分底池。花色不分大小，A 在顺子里可以当 1。" },
+	{ id: "showdown", kind: "info", lesson: "摊牌", anchor: "result", face: "happy", say: "摊牌：没弃牌的人亮出底牌，牌型大的赢走底池。", note: "你的两对 K 和 Q 赢了咕噜一号的一对 9。" },
+	{ id: "ranks", kind: "info", lesson: "牌型大小", anchor: "hand-ranks", face: "think", say: "牌型从大到小看这张表：同花顺最大，高牌最小。", note: "同牌型再比点数；五张一样大就平分底池。花色不分大小，A 在顺子里可以当 1。" },
 	// 第 2 手：庄位轮到咕噜一号，咕噜二号小盲，你是大盲。
 	{ id: "deal2", kind: "watch", moves: [NEXT], say: "下一手：庄位往左轮一位，这次你是大盲。" },
 	{ id: "pre2", kind: "watch", moves: [{ type: "raise", to: 60 }, CALL], say: "咕噜一号加注到 60，咕噜二号跟注。" },
@@ -99,7 +99,7 @@ export const TUTORIAL_STEPS: readonly TutorialStep[] = [
 	{ id: "fold3", kind: "watch", moves: [FOLD], say: "咕噜一号弃牌。没人能再下注了，公共牌直接发完。" },
 	{ id: "out", kind: "info", lesson: "出局", anchor: "result", face: "surprised", say: "咕噜二号筹码输光，出局了！", note: "你比他多推的那部分没人跟，退回给你。出局的人留在桌边观战。" },
 	{ id: "sidepot", kind: "info", lesson: "边池", face: "think", say: "几个人筹码不一样多都全下时，多出来的下注另开「边池」。", note: "每个底池只在为它出过筹码的人之间比：筹码少的人就算赢了，也只拿他跟得起的那份。" },
-	{ id: "timer", kind: "info", lesson: "限时和托管", face: "think", say: "和真人打有行动限时：超时能过牌就过牌，否则弃牌。", note: "连续两次超时转「托管」，由人机替你打，点「取消托管」收回；掉线时也由人机代打，用原昵称回来就交还。" },
+	{ id: "timer", kind: "info", lesson: "托管", face: "think", say: "和真人打有行动限时：超时能过牌就过牌，否则弃牌。", note: "连续两次超时转「托管」，由人机替你打，点「取消托管」收回；掉线时也由人机代打，用原昵称回来就交还。" },
 	{ id: "end", kind: "info", lesson: "结束", finale: true, face: "happy", say: "只剩一个人有筹码时比赛结束，他就是冠军。", note: "现在只剩你和咕噜一号。接着打完这局，拿不准就点「提示」。" },
 ];
 

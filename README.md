@@ -31,6 +31,13 @@ npm run dev
 - 每步约 0.6 ms。强度：`npx tsx ~/projects/qa-reports/tools/bots/sim-texas-holdem.ts 300`（在本仓库目录跑；公共代码在 `packages/game/test/bot-harness.ts`）。
 - 服务器：`BOT_DELAY_SCALE`（人机停顿倍数，测试 0）、`OFFLINE_GRACE_MS`（默认 3000）。真人都出局后人机打快一些。开发时 `ACTION_TIME_UNIT_MS=50 BOT_DELAY_SCALE=0.3 HAND_PAUSE_MS=1500 npm run dev` 测得快，网页截图脚本 `~/projects/qa-reports/tools/bots/bots-ui-poker.mjs`。
 
+## 新手教程
+
+- 首页和等候房间有「新手教程」入口（第一次是邀请卡，学过只剩小按钮；地址带 `?tutorial` 直接打开）。教程不连服务器：浏览器里直接跑规则引擎，三人桌（你 + 咕噜一号 + 咕噜二号），前三手牌按剧本摆牌：盲注 → 底牌和公共牌 → 跟注 → 翻牌 → 过牌 → 转牌 → 加注 → 河牌 → 下注 → 摊牌和牌型表 → 弃牌 → 全下、淘汰咕噜二号 → 边池、托管、结束条件，学完接着和咕噜一号（人机）打完这局，可以点「提示」（键盘 H）。
+- 剧本 `packages/game/src/tutorial.ts`（`TUTORIAL_STEPS`、`SCRIPT_HANDS`、`applyTutorial`，一手结束后的「发下一手」当成荷官的命令 `nextHand`），单测 `packages/game/test/tutorial.test.ts`。网页 `apps/web/src/tutorial/`（从欲罢不能原样复制，只把 tutorial.css 的 `.app-shell` 前缀放宽到 `.game-shell`）、`TutorialMode.tsx`（侧栏放进度和牌型大小表）、`tutorialGame.ts`（提示的说法 = 人机 `botAdvice(…, { hint: true })` 的理由；「第一次」小贴士：摊牌、边池、退回、其他人弃牌、盲注翻倍、自己出局）。
+- 「提示」只在练习局、或者自己和人机的房间里出现；有别的真人就没有。
+- 走查：`node ~/projects/qa-reports/tools/tut-poker.mjs <输出目录> flow|waiting|room [1440|1920|1024|390] [night|day]`（在 qa-reports/tools 目录跑，先起 dev 服务）。
+
 ## 测试
 
 ```bash

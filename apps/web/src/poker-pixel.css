@@ -254,3 +254,23 @@
 @media (max-width: 1000px), (max-height: 620px) {
   .game-shell .pk-card-large { width: 41px; height: 57px; }
 }
+
+/* 预设按钮不折成竖排；窄屏上加注区独占一行 */
+.game-shell .pk-raise-presets button { white-space: nowrap; }
+@media (max-width: 720px) {
+  .game-shell .pk-raise { flex: 1 1 100%; justify-content: flex-end; }
+}
+
+/* 「提示」按钮（只有自己和人机时出现） */
+.game-shell .pk-action-button.pk-hint { --rim: #8ec0ff; --shade: #0e2550; color: #d8e8ff; background: #2a62c0; }
+.game-shell .pk-action-button.pk-hint.on { --rim: #fff2b8; --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+
+/* 教程侧栏：进度 + 牌型大小表 */
+.game-shell .tut-checklist { display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: auto; }
+.game-shell .tut-checklist h3 { margin: 0; color: var(--gold); font-size: 12px; }
+.game-shell .tut-checklist h3 small { margin-left: 6px; color: var(--muted); font-size: 12px; }
+.game-shell .tut-checklist p { margin: 0; color: var(--muted); font-size: 12px; }
+.game-shell .pk-ranks ol { display: grid; gap: 2px; margin: 4px 0 0; padding: 0; list-style: none; }
+.game-shell .pk-ranks li { display: flex; gap: 8px; font-size: 12px; }
+.game-shell .pk-ranks li b { min-width: 3.5em; color: var(--text); font-weight: normal; }
+.game-shell .pk-ranks li span { color: var(--muted); }
