@@ -160,6 +160,9 @@
 }
 .game-shell .pk-tag { --rim: #f25c5c; --shade: #3d0a12; padding: 0 4px; color: #ffd8d0; background: #6e1020; font-size: 12px; }
 .game-shell .pk-tag.allin { --rim: #fff2b8; --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+.game-shell .pk-tag.bot { --rim: #8ec0ff; --shade: #0e2550; color: #d8e8ff; background: #2a62c0; }
+.game-shell .pk-tag.auto { --rim: #fff2b8; --shade: #7a5410; color: #2a1c06; background: var(--gold); }
+.game-shell .pk-auto-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px; color: var(--gold); font-size: 24px; }
 .game-shell .pk-action { --rim: #3f8a62; --shade: #06180f; padding: 0 6px; color: #cfe8d4; background: #0e2a1c; font-size: 12px; }
 .game-shell .pk-action.fold { color: #6f8a78; }
 .game-shell :is(.pk-action.raise, .pk-action.bet, .pk-action.allIn) { color: var(--gold); }

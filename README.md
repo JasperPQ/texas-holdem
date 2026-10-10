@@ -24,6 +24,13 @@ npm run dev
 - `TURN_HOST`、`TURN_SECRET`：语音中转服务器与密钥。
 - 构建时 `BASE_PATH=/poker/` 让页面部署在子路径下。
 
+## 人机和托管
+
+- 等待大厅里房主点空座位上的「加人机」，人机叫咕噜一号～五号（「人机」标签、普通难度），一个人加满人机也能开局。连续 2 次超时转托管（人机代打，点「取消托管」或自己操作一次就收回）；掉线的人轮到时等 3 秒由人机代打，原昵称回来交还。这条覆盖 RULES.md 原来「超时自动过牌/弃牌、掉线一直等」的写法，见 RULES.md「超时、托管与掉线」。
+- 策略在 `packages/game/src/bot.ts`：`botAdvice(视角, 座位) → { action, reason, equity }`、`botCommand`。输入必须是 `viewForPlayer` 之后的视角（带牌堆直接抛错）。蒙特卡洛估摊牌胜率（单挑 1600 次、多人 1000–1300 次，用位运算快速估值），对比底池赔率决定弃/跟/加；对手这一轮加过注的按起手牌强度（陈氏公式百分位）收紧他的范围，越爱加注的对手收得越松；跟注押上大半筹码时多要一点把握；没人下注时偶尔小注诈唬（提示模式不诈唬，对手几乎不弃牌时也不诈唬）。≤10 个大盲翻牌前只全下或弃牌。`stats`（每人行动/加注/弃牌次数）是牌桌上人人看得到的公开信息。
+- 每步约 0.6 ms。强度：`npx tsx ~/projects/qa-reports/tools/bots/sim-texas-holdem.ts 300`（在本仓库目录跑；公共代码在 `packages/game/test/bot-harness.ts`）。
+- 服务器：`BOT_DELAY_SCALE`（人机停顿倍数，测试 0）、`OFFLINE_GRACE_MS`（默认 3000）。真人都出局后人机打快一些。开发时 `ACTION_TIME_UNIT_MS=50 BOT_DELAY_SCALE=0.3 HAND_PAUSE_MS=1500 npm run dev` 测得快，网页截图脚本 `~/projects/qa-reports/tools/bots/bots-ui-poker.mjs`。
+
 ## 测试
 
 ```bash

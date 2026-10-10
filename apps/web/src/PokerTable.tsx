@@ -129,6 +129,8 @@ function Seat({ player, seat, match, position, member, remainingMs, isMe }: {
         {hand.dealerSeat === seat && match.phase !== "finished" && <span className="pk-dealer" title="庄位">D</span>}
         <strong>{player.name}{isMe ? "（你）" : ""}</strong>
         <span className="pk-chips">{out ? `第 ${player.place} 名` : player.chips}</span>
+        {member?.bot && <span className="pk-tag bot">人机</span>}
+        {member?.auto && <span className="pk-tag auto">托管</span>}
         {member?.connected === false && <span className="pk-tag">离线</span>}
         {player.allIn && !out && <span className="pk-tag allin">全下</span>}
       </div>
@@ -201,6 +203,7 @@ function PokerTable({
   onAction,
   onRematch,
   onDissolve,
+  onAuto,
   watchId,
   onWatch,
   onLeave,
@@ -217,6 +220,8 @@ function PokerTable({
   onAction: (action: PokerAction) => void;
   onRematch: (accept: boolean) => void;
   onDissolve: () => void;
+  /** 打开 / 取消托管。 */
+  onAuto: (enabled: boolean) => void;
   /** 观战时从这位玩家的座位看。 */
   watchId: string;
   onWatch: (playerId: string) => void;
@@ -246,6 +251,7 @@ function PokerTable({
   const nameOf = (id: string) => match.players.find((player) => player.id === id)?.name ?? "玩家";
   const activeName = hand.turn !== null ? match.players[hand.turn]?.name : "";
   const myTurn = !spectating && match.phase === "playing" && hand.turn === mySeat;
+  const myAuto = !spectating && room.members.find((member) => member.id === socket.id)?.auto === true;
 
   const turnText = match.phase === "finished" ? "比赛结束"
     : match.phase === "handOver" ? "这一手结束"
@@ -340,6 +346,11 @@ function PokerTable({
         <div className="pk-actions">
           {spectating ? (
             <SpectateBar room={room} watchId={me.id} onWatch={onWatch} onLeave={onLeave} />
+          ) : myAuto && me.place === null ? (
+            <span className="pk-auto-bar" data-tutorial="auto">
+              <span>托管中：人机替你出牌</span>
+              <button type="button" className="pk-action-button auto-cancel" disabled={busy} onClick={() => onAuto(false)}>取消托管</button>
+            </span>
           ) : myTurn && legal ? (
             <>
               {remainingMs !== null && match.settings.actionSeconds > 0 && <span className="pk-countdown">{Math.ceil(remainingMs / 1000)} 秒</span>}
