@@ -4,3 +4,4 @@ export * from "./holdem.js";
 export * from "./view.js";
 export * from "./roomTypes.js";
 export * from "./bot.js";
+export * from "./tutorial.js";
