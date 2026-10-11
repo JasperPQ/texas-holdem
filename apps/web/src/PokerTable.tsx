@@ -15,6 +15,8 @@ import {
 import GameRules from "./GameRules.js";
 import { GameRoomMenu, SpectateBar } from "./RoomExtras.js";
 import { socket } from "./socket.js";
+import { noteMyAction, useGameSfx } from "./game-sfx.js";
+import { useSfxCountdown } from "./gm-sound.js";
 import { Coach, TipToast } from "./tutorial/Coach.js";
 import { useFirstTimeTips } from "./tutorial/tips.js";
 import { detectTips, GAME_ID, hintFor, TIPS, type Hint } from "./tutorialGame.js";
@@ -276,6 +278,13 @@ function PokerTable({
   const activeName = hand.turn !== null ? match.players[hand.turn]?.name : "";
   const myTurn = !spectating && match.phase === "playing" && hand.turn === mySeat;
   const myAuto = !spectating && room.members.find((member) => member.id === selfId)?.auto === true;
+  // 动作音效：对比前后两次局面；自己行动的最后 5 秒每秒一声
+  useGameSfx(match, spectating ? "" : selfId, myAuto);
+  useSfxCountdown(myTurn && !myAuto && match.settings.actionSeconds > 0, remainingMs === null ? null : Math.ceil(remainingMs / 1000));
+  const act = (action: PokerAction) => {
+    noteMyAction();
+    onAction(action);
+  };
 
   // 局面每变一次加 1（提示、小贴士按它判断「这一步」）。
   const stepKey = `${match.phase}:${hand.number}:${hand.street}:${hand.turn}:${match.players.map((player) => `${player.handBet}${player.folded ? "f" : ""}`).join(",")}`;
@@ -403,15 +412,15 @@ function PokerTable({
             <>
               {remainingMs !== null && match.settings.actionSeconds > 0 && <span className="pk-countdown">{Math.ceil(remainingMs / 1000)} 秒</span>}
               {canHint && <button type="button" className={shownHint ? "pk-action-button pk-hint on" : "pk-action-button pk-hint"} data-tutorial="hint" onClick={toggleHint} title="人机会怎么打（键盘 H）">提示</button>}
-              <button type="button" className="pk-action-button fold" data-tutorial="fold" disabled={busy} onClick={() => onAction({ type: "fold" })}>弃牌</button>
+              <button type="button" className="pk-action-button fold" data-tutorial="fold" disabled={busy} onClick={() => act({ type: "fold" })}>弃牌</button>
               {legal.canCheck
-                ? <button type="button" className="pk-action-button" data-tutorial="check" disabled={busy} onClick={() => onAction({ type: "check" })}>过牌</button>
-                : <button type="button" className="pk-action-button" data-tutorial="call" disabled={busy} onClick={() => onAction({ type: "call" })}>
+                ? <button type="button" className="pk-action-button" data-tutorial="check" disabled={busy} onClick={() => act({ type: "check" })}>过牌</button>
+                : <button type="button" className="pk-action-button" data-tutorial="call" disabled={busy} onClick={() => act({ type: "call" })}>
                     {me.chips <= legal.toCall ? `全下跟注 ${me.chips}` : `跟注 ${legal.toCall}`}
                   </button>}
               {legal.canRaise && (
                 <div className="pk-raise" data-tutorial="raise">
-                  <div className="pk-raise-presets">
+                  <div className="pk-raise-presets" data-sfx="select">
                     <button type="button" onClick={() => setRaiseTo(legal.minRaiseTo)}>最小</button>
                     <button type="button" onClick={() => setRaiseTo(potRaise(0.5))}>½ 底池</button>
                     <button type="button" onClick={() => setRaiseTo(potRaise(1))}>底池</button>
@@ -422,6 +431,7 @@ function PokerTable({
                     min={legal.minRaiseTo}
                     max={legal.maxRaiseTo}
                     step={1}
+                    data-sfx="select"
                     value={raiseTo}
                     onChange={(event) => setRaiseTo(Number(event.target.value))}
                     aria-label="加注金额"
@@ -439,14 +449,14 @@ function PokerTable({
                     type="button"
                     className="pk-action-button raise"
                     disabled={busy || raiseTo < legal.minRaiseTo || raiseTo > legal.maxRaiseTo}
-                    onClick={() => onAction(raiseTo === legal.maxRaiseTo ? { type: "allIn" } : { type: "raise", to: raiseTo })}
+                    onClick={() => act(raiseTo === legal.maxRaiseTo ? { type: "allIn" } : { type: "raise", to: raiseTo })}
                   >
                     {raiseTo === legal.maxRaiseTo ? `全下 ${raiseTo}` : `${raiseVerb} ${raiseTo}`}
                   </button>
                 </div>
               )}
               {!legal.canRaise && legal.canAllIn && me.chips > legal.toCall && (
-                <button type="button" className="pk-action-button raise" data-tutorial="allin" disabled={busy} onClick={() => onAction({ type: "allIn" })}>全下 {legal.maxRaiseTo}</button>
+                <button type="button" className="pk-action-button raise" data-tutorial="allin" disabled={busy} onClick={() => act({ type: "allIn" })}>全下 {legal.maxRaiseTo}</button>
               )}
             </>
           ) : (

@@ -85,6 +85,8 @@
   transform: none;
   filter: brightness(1.15);
 }
+/* styles.css 的 .quiet-button:hover 会把字改成深色，压在靛蓝底上看不见（顶栏的 ♪、切换白天版） */
+.game-shell .quiet-button:hover:not(:disabled) { color: var(--text); }
 .game-shell :is(.primary-button, .quiet-button, .game-rules-toggle, .room-chat-send, .voice-button, .pk-action-button, .pk-raise-presets button, .pk-dissolve):active:not(:disabled) {
   transform: translateY(var(--px));
   --rim: var(--shade);

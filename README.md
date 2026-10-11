@@ -54,6 +54,12 @@ npm run typecheck
 - `index.html` 里一小段脚本在样式生效前就给 `<html>` 加上 `data-theme="day"`，打开页面不会先闪一下深色；切换逻辑和按钮在 `src/theme.tsx`。
 - 牌面是 `public/cards-pixel/` 的像素 PNG。像素牌面、牌桌、筹码、庄家按钮由掼蛋仓库的 `art/cards.py` 生成（两个游戏共用一副牌），见那边的 README。
 
+## 声音
+
+还没有背景音乐（`App.tsx` 用 `NO_BGM`，房间和教程里照样有 ♪ 面板调音效、语音）。声音库是共用的 `apps/web/src/gm-sound.tsx`（各仓库同一份，不要单独改）。
+
+动作音效在 `apps/web/src/game-sfx.ts`，对比前后两次牌桌快照推断刚发生的动作：新的一手洗牌 + 发底牌；翻牌三张一张张翻、转牌和河牌各翻一张；过牌敲两下桌面；跟注 / 下注 / 加注是筹码落下（金额越大枚数越多，加注多一声上扬）；弃牌是牌往里一推；**全下**是一大摞筹码推进去加一声低沉的「咚」；摊牌亮牌；**赢下底池**是筹码哗啦啦滑过来（自己赢的再加三声上行）；输光出局是下滑的一声；比赛结束、轮到你、回合交出、超时被代做、最后 5 秒倒计时用共用提示音。别人的动作音量减半，观战都算别人的；第一次拿到局面、重连跳了好几步时不出声。加注快捷金额和滑杆按下是 select；有人进出、开局、收到聊天、服务器报错也有提示音（`App.tsx` 的 `useRoomSfx`、`sfx.error`）。
+
 ## 服务器上的启动方式
 
 pm2 按仓库根目录的 `ecosystem.config.cjs` 直接启动一个 `node --import tsx` 进程跑服务端（不经过 `npm start`），每个游戏省下约 50 MB 内存（实测，原来被几层包装进程占掉的部分）。端口和密钥存在 pm2 里，不进仓库；`deploy.sh` 照旧 `pm2 restart`。改了 `ecosystem.config.cjs` 之后，要在服务器上带着原来的环境变量 `pm2 delete` 再 `pm2 start ecosystem.config.cjs` 一次。
