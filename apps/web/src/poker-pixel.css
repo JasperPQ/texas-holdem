@@ -276,3 +276,19 @@
 .game-shell .pk-ranks li { display: flex; gap: 8px; font-size: 12px; }
 .game-shell .pk-ranks li b { min-width: 3.5em; color: var(--text); font-weight: normal; }
 .game-shell .pk-ranks li span { color: var(--muted); }
+
+/* ---------- 全屏背景：首页、等候房间的场景铺满窗口 ---------- */
+.th-backdrop { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #0a120c; }
+.th-backdrop-art {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100vw, calc(100vh * 16 / 9));
+  height: max(100vh, calc(100vw * 9 / 16));
+  transform: translate(-50%, -50%);
+  background-size: 100% 100%;
+  image-rendering: pixelated;
+}
+.th-backdrop-art--day { display: none; }
+.th-backdrop-veil { position: absolute; inset: 0; background: #050906; opacity: 0.4; }
+.app-shell.th-home > :not(.th-backdrop):not(.gm-modal-backdrop), .app-shell.th-room > :not(.th-backdrop):not(.gm-modal-backdrop) { position: relative; z-index: 1; }

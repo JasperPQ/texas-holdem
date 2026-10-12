@@ -7,3 +7,9 @@
 
 /* 绒布上（和顶栏盲注）的深绿小牌子保持夜间的浅色字 */
 :root[data-theme="day"] .game-shell :is(.pk-blinds, .pk-pot, .pk-result, .pk-plate, .pk-action, .pk-bet) { --text: #f1ece0; --muted: #9a93ad; }
+
+/* 全屏背景：白天版罩色变浅 */
+:root[data-theme="day"] .th-backdrop { background: #e2ede4; }
+:root[data-theme="day"] .th-backdrop-veil { background: #ffffff; opacity: 0.25; }
+:root[data-theme="day"] .th-backdrop-art--day { display: block; }
+:root[data-theme="day"] .th-backdrop-art--night { display: none; }
