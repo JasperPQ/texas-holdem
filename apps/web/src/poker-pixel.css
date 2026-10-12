@@ -292,3 +292,7 @@
 .th-backdrop-art--day { display: none; }
 .th-backdrop-veil { position: absolute; inset: 0; background: #050906; opacity: 0.4; }
 .app-shell.th-home > :not(.th-backdrop):not(.gm-modal-backdrop), .app-shell.th-room > :not(.th-backdrop):not(.gm-modal-backdrop) { position: relative; z-index: 1; }
+
+/* 全屏背景上的标题/简介、等候房标题垫面板，让文字在图上清楚（参照遥远之地） */
+.app-shell .welcome-copy { padding: 16px 20px 20px; background: var(--panel); box-shadow: 0 0 0 var(--px) var(--edge); }
+.app-shell .room-heading { padding: 12px 16px; background: var(--panel); box-shadow: 0 0 0 var(--px) var(--edge); }
