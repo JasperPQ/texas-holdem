@@ -1,0 +1,21 @@
+{
+  "bg": {
+    "_说明": "全屏匹配背景图（512x288，day/night），候选在 art/out/bg/",
+    "day": {
+      "file": "apps/web/public/art/bg/day.png",
+      "source": "art/out/bg/day-s1501.png",
+      "size": [
+        512,
+        288
+      ]
+    },
+    "night": {
+      "file": "apps/web/public/art/bg/night.png",
+      "source": "art/out/bg/night-s1503.png",
+      "size": [
+        512,
+        288
+      ]
+    }
+  }
+}

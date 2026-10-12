@@ -6,3 +6,6 @@ coverage/
 *.tsbuildinfo
 *.tmp
 data/guestbook.json
+
+# PixelLab 候选图
+art/out/
